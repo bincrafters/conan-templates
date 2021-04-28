@@ -1,13 +1,13 @@
 on: [push, pull_request]
 
-# bincrafters-conventions:gha-workflow-version:10
+# bincrafters-conventions:gha-workflow-version:11
 # You can add custom environment variables above the version tag
 # Do not modify the tag or anything below the tag
 # This script gets automatically updated
 #
 # Possible configurations:
 # env:
-#   splitByBuildTypes: "false"  # Possible values "false", "true", default: false
+#   BPT_SPLIT_BY_BUILD_TYPES: "false"  # Possible values "false", "true", default: false
 #
 # You can furthermore set any environment variable understood by Conan and Conan Package Tools
 #
@@ -22,21 +22,21 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+    env:
+      BPT_CONFIG_FILE_VERSION: "11"
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: "0"
-      - uses: actions/setup-python@v1
+      - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
       - name: Install Package Tools
         run: |
-          pip install bincrafters_package_tools
+          pip install git+https://github.com/bincrafters/bincrafters-package-tools@develop
           conan user
       - name: Generate Job Matrix
         id: set-matrix
-        env:
-          splitByBuildTypes: ${{ env.splitByBuildTypes }}
         run: |
           MATRIX=$(bincrafters-package-tools generate-ci-jobs --platform gha)
           echo "${MATRIX}"
@@ -48,18 +48,20 @@ jobs:
       fail-fast: false
       matrix: ${{fromJson(needs.generate-matrix.outputs.matrix)}}
     name: ${{ matrix.config.name }}
+    env:
+      BPT_CONFIG_FILE_VERSION: "11"
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: "0"
-      - uses: actions/setup-python@v1
+      - uses: actions/setup-python@v2
         with:
           python-version: "3.8"
       - name: Install Conan
         env:
           BPT_MATRIX: ${{toJson(matrix.config)}}
         run: |
-          pip install bincrafters_package_tools
+          pip install git+https://github.com/bincrafters/bincrafters-package-tools@develop
           # remove newlines from matrix first
           matrix=$(echo ${BPT_MATRIX})
           bincrafters-package-tools prepare-env --platform gha --config "${matrix}"
